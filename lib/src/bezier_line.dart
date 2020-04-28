@@ -7,6 +7,8 @@ class BezierLine {
   ///Line color for each data point
   final Color lineColor;
 
+  final double dataPointCircleWidth;
+
   ///Color for the dot fill on each data point
   final Color dataPointFillColor;
 
@@ -27,6 +29,7 @@ class BezierLine {
   final String label;
 
   const BezierLine({
+    this.dataPointCircleWidth,
     this.lineColor = Colors.white,
     this.lineStrokeWidth = 3.0,
     this.label = "",
@@ -46,6 +49,7 @@ class BezierLine {
       dataPointStrokeColor: bezierLine.dataPointStrokeColor,
       onMissingValue: bezierLine.onMissingValue,
       data: bezierLine.data,
+      dataPointCircleWidth: bezierLine.dataPointCircleWidth
     );
   }
 

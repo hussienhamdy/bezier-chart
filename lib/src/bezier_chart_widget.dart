@@ -18,6 +18,8 @@ class BezierChart extends StatefulWidget {
   ///Chart configuration
   final BezierChartConfig config;
 
+  final double horizontalSpacing;
+
   ///Type of Chart
   final BezierChartScale bezierChartScale;
 
@@ -78,9 +80,13 @@ class BezierChart extends StatefulWidget {
   ///Notify if the `BezierChartScale` changed, it only works with date scales.
   final ValueChanged<BezierChartScale> onScaleChanged;
 
+  final double horizontalPadding;
+
   BezierChart({
     Key key,
+    this.horizontalPadding,
     this.config,
+    this.horizontalSpacing,
     this.xAxisCustomValues,
     this.footerValueBuilder,
     this.bubbleLabelValueBuilder,
@@ -155,10 +161,10 @@ class BezierChartState extends State<BezierChart>
 
   ///Track the current position when dragging the indicator
   Offset _verticalIndicatorPosition;
-  bool _displayIndicator = false;
+  bool _displayIndicator = true;
 
   ///padding for leading and trailing of the chart
-  final double horizontalPadding = 50.0;
+  final double horizontalPadding = 0.0;
 
   ///spacing between each datapoint
   double horizontalSpacing = 60.0;
@@ -371,8 +377,9 @@ class BezierChartState extends State<BezierChart>
   double _buildContentWidth(BoxConstraints constraints) {
     final scale = _currentBezierChartScale;
     if (scale == BezierChartScale.CUSTOM) {
-      return widget.config.contentWidth ??
-          constraints.maxWidth - 2 * horizontalPadding;
+      return widget.config.contentWidth;
+      //     constraints.maxWidth - 2 * horizontalPadding;
+      // return _xAxisDataPoints.length * (widget.horizontalSpacing * _currentScale)-horizontalPadding/2;
     } else {
       if (scale == BezierChartScale.HOURLY) {
         horizontalSpacing = constraints.maxWidth / 7;
@@ -442,17 +449,17 @@ class BezierChartState extends State<BezierChart>
           setState(
             () {
               _verticalIndicatorPosition = fixedPosition;
-              _onDisplayIndicator(
-                LongPressMoveUpdateDetails(
-                  globalPosition: fixedPosition,
-                  offsetFromOrigin: fixedPosition,
-                ),
-                updatePosition: false,
-              );
+              // _onDisplayIndicator(
+              //   LongPressMoveUpdateDetails(
+              //     globalPosition: fixedPosition,
+              //     offsetFromOrigin: fixedPosition,
+              //   ),
+              //   updatePosition: false,
+              // );
             },
           );
         } else {
-          final jumpToX = (index * horizontalSpacing) -
+          final jumpToX = (index * 0) -
               horizontalPadding / 2 -
               _keyScroll.currentContext.size.width / 2;
           _scrollController.jumpTo(jumpToX);
@@ -460,16 +467,16 @@ class BezierChartState extends State<BezierChart>
           fixedPosition = Offset(
               isOnlyOneAxis
                   ? 0.0
-                  : (index * horizontalSpacing + 2 * horizontalPadding) -
+                  : (index * 0 + 2 * horizontalPadding) -
                       _scrollController.offset,
               0.0);
           _verticalIndicatorPosition = fixedPosition;
-          _onDisplayIndicator(
-            LongPressMoveUpdateDetails(
-              globalPosition: fixedPosition,
-              offsetFromOrigin: fixedPosition,
-            ),
-          );
+          // _onDisplayIndicator(
+          //   LongPressMoveUpdateDetails(
+          //     globalPosition: fixedPosition,
+          //     offsetFromOrigin: fixedPosition,
+          //   ),
+          // );
         }
       }
     }
@@ -609,14 +616,14 @@ class BezierChartState extends State<BezierChart>
 
         BezierLine newBezierLine = BezierLine.copy(
           bezierLine: BezierLine(
-            lineColor: line.lineColor,
-            label: line.label,
-            lineStrokeWidth: line.lineStrokeWidth,
-            onMissingValue: line.onMissingValue,
-            dataPointFillColor: line.dataPointFillColor,
-            dataPointStrokeColor: line.dataPointStrokeColor,
-            data: newDataPoints,
-          ),
+              lineColor: line.lineColor,
+              label: line.label,
+              lineStrokeWidth: line.lineStrokeWidth,
+              onMissingValue: line.onMissingValue,
+              dataPointFillColor: line.dataPointFillColor,
+              dataPointStrokeColor: line.dataPointStrokeColor,
+              data: newDataPoints,
+              dataPointCircleWidth: line.dataPointCircleWidth),
         );
         computedSeries.add(newBezierLine);
       }
@@ -811,10 +818,8 @@ class BezierChartState extends State<BezierChart>
           }
         },
         child: GestureDetector(
-          onLongPressStart: widget.config.updatePositionOnTap
-              ? null
-              : (isPinchZoomActive ? null : _onDisplayIndicator),
-          onLongPressMoveUpdate: isPinchZoomActive ? null : _refreshPosition,
+          // onLongPressStart: isPinchZoomActive ? null : _onDisplayIndicator,
+          // onLongPressMoveUpdate: isPinchZoomActive ? null : _refreshPosition,
           onScaleStart: (_) {
             _previousScale = _currentScale;
           },
@@ -824,12 +829,7 @@ class BezierChartState extends State<BezierChart>
                   !_displayIndicator
               ? (details) => _onPinchZoom(_previousScale * details.scale)
               : null,
-          onTap: widget.config.updatePositionOnTap
-              ? null
-              : (isPinchZoomActive ? null : _onHideIndicator),
-          onTapDown: widget.config.updatePositionOnTap
-              ? (isPinchZoomActive ? null : _refreshPosition)
-              : null,
+          onTap: isPinchZoomActive ? null : _onHideIndicator,
           child: LayoutBuilder(
             builder: (context, constraints) {
               _contentWidth = _buildContentWidth(constraints);
@@ -843,9 +843,10 @@ class BezierChartState extends State<BezierChart>
                       : widget.config.physics,
                   key: _keyScroll,
                   scrollDirection: Axis.horizontal,
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+                  padding: EdgeInsets.symmetric(
+                      horizontal: widget.horizontalPadding),
                   child: Align(
-                    alignment: Alignment(0.0, 0.7),
+                    alignment: AlignmentDirectional.center,
                     child: CustomPaint(
                       size: Size(
                         _contentWidth,
@@ -1288,21 +1289,20 @@ class _BezierChartPainter extends CustomPainter {
         //draw data points
         //Data points won't work until Flutter team fix this issue : https://github.com/flutter/flutter/issues/32218
         if (!kIsWeb) {
-          canvas.drawPoints(
-              PointMode.points,
-              dataPoints,
-              paintControlPoints
-                ..style = PaintingStyle.stroke
-                ..strokeWidth = 10
-                ..color = line.dataPointStrokeColor);
-          canvas.drawPoints(
-            PointMode.points,
-            dataPoints,
-            paintControlPoints
-              ..style = PaintingStyle.fill
-              ..strokeWidth = line.lineStrokeWidth * 1.5
-              ..color = line.dataPointFillColor,
-          );
+          for (int i = 0; i < dataPoints.length; i++) {
+            canvas.drawCircle(
+                dataPoints[i],
+                line.dataPointCircleWidth,
+                paintControlPoints
+                  ..style = PaintingStyle.fill
+                  ..color = line.dataPointStrokeColor);
+            canvas.drawCircle(
+                dataPoints[i],
+                line.dataPointCircleWidth / 2,
+                paintControlPoints
+                  ..style = PaintingStyle.fill
+                  ..color = Colors.white);
+          }
         }
       }
     }
@@ -1371,14 +1371,11 @@ class _BezierChartPainter extends CustomPainter {
             10 - ((infoHeight / (8.75)) * _currentCustomValues.length);
         infoHeight =
             infoHeight + (_currentCustomValues.length - 1) * (infoHeight / 3);
-
         for (_CustomValue customValue
             in _currentCustomValues.reversed.toList()) {
           textValues.add(
             TextSpan(
-              text: config.bubbleIndicatorValueFormat != null
-                  ? "${config.bubbleIndicatorValueFormat.format(double.parse(customValue.value))} "
-                  : "${customValue.value} ",
+              text: "${customValue.value} ",
               style: config.bubbleIndicatorValueStyle.copyWith(fontSize: 11),
               children: [
                 TextSpan(
